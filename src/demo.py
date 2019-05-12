@@ -11,7 +11,7 @@ def predict(model, ifn, ofn):
     inputs = cv2.resize(im, (512, 512))
     inputs = inputs.astype('float32')
     inputs.shape = (1,) + inputs.shape
-    inputs /= 127.5
+    inputs = inputs / 127.5 - 1
     mask = model.predict(inputs)
     mask.shape = mask.shape[1:]
     mask = cv2.resize(mask, (w, h))
@@ -23,4 +23,4 @@ def predict(model, ifn, ofn):
 
 
 if __name__ == '__main__':
-    predict('weights.002.h5', '5.jpg', 'b.5.jpg')
+    predict('weights.002.h5', 'a.jpg', 'a.a.jpg')
