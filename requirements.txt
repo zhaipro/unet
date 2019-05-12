@@ -1,0 +1,4 @@
+opencv-python
+keras>=2.2.4
+# tensorflow
+numpy>=1.14.6
