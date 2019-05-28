@@ -3,8 +3,7 @@ import numpy as np
 from keras import backend as K
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.layers import BatchNormalization, MaxPooling2D, concatenate
-from keras.layers import Conv2D, Input, Activation, UpSampling2D
-from keras.losses import binary_crossentropy
+from keras.layers import Conv2D, Input, Activation, UpSampling2D, Dropout
 from keras.models import Model
 from keras.optimizers import RMSprop
 
@@ -12,18 +11,9 @@ from keras.optimizers import RMSprop
 def get_unet_512(input_shape=(None, None, 3),
                  num_classes=1):
     inputs = Input(shape=input_shape)
-    # 512
-
-    down0a = Conv2D(16, (3, 3), padding='same')(inputs)
-    down0a = BatchNormalization()(down0a)
-    down0a = Activation('relu')(down0a)
-    down0a = Conv2D(16, (3, 3), padding='same')(down0a)
-    down0a = BatchNormalization()(down0a)
-    down0a = Activation('relu')(down0a)
-    down0a_pool = MaxPooling2D()(down0a)
     # 256
 
-    down0 = Conv2D(16, (3, 3), padding='same')(down0a_pool)
+    down0 = Conv2D(16, (3, 3), padding='same')(inputs)
     down0 = BatchNormalization()(down0)
     down0 = Activation('relu')(down0)
     down0 = Conv2D(16, (3, 3), padding='same')(down0)
@@ -32,7 +22,8 @@ def get_unet_512(input_shape=(None, None, 3),
     down0_pool = MaxPooling2D()(down0)
     # 128
 
-    down1 = Conv2D(32, (3, 3), padding='same')(down0_pool)
+    down1 = Dropout(0.25)(down0_pool)
+    down1 = Conv2D(32, (3, 3), padding='same')(down1)
     down1 = BatchNormalization()(down1)
     down1 = Activation('relu')(down1)
     down1 = Conv2D(32, (3, 3), padding='same')(down1)
@@ -50,7 +41,8 @@ def get_unet_512(input_shape=(None, None, 3),
     down2_pool = MaxPooling2D()(down2)
     # 32
 
-    down3 = Conv2D(64, (3, 3), padding='same')(down2_pool)
+    down3 = Dropout(0.25)(down2_pool)
+    down3 = Conv2D(64, (3, 3), padding='same')(down3)
     down3 = BatchNormalization()(down3)
     down3 = Activation('relu')(down3)
     down3 = Conv2D(64, (3, 3), padding='same')(down3)
@@ -68,7 +60,8 @@ def get_unet_512(input_shape=(None, None, 3),
     down4_pool = MaxPooling2D()(down4)
     # 8
 
-    center = Conv2D(128, (3, 3), padding='same')(down4_pool)
+    center = Dropout(0.25)(down4_pool)
+    center = Conv2D(128, (3, 3), padding='same')(center)
     center = BatchNormalization()(center)
     center = Activation('relu')(center)
     center = Conv2D(128, (3, 3), padding='same')(center)
@@ -141,20 +134,7 @@ def get_unet_512(input_shape=(None, None, 3),
     up0 = Activation('relu')(up0)
     # 256
 
-    up0a = UpSampling2D()(up0)
-    up0a = concatenate([down0a, up0a], axis=3)
-    up0a = Conv2D(16, (3, 3), padding='same')(up0a)
-    up0a = BatchNormalization()(up0a)
-    up0a = Activation('relu')(up0a)
-    up0a = Conv2D(16, (3, 3), padding='same')(up0a)
-    up0a = BatchNormalization()(up0a)
-    up0a = Activation('relu')(up0a)
-    up0a = Conv2D(16, (3, 3), padding='same')(up0a)
-    up0a = BatchNormalization()(up0a)
-    up0a = Activation('relu')(up0a)
-    # 512
-
-    classify = Conv2D(num_classes, (1, 1), activation='sigmoid')(up0a)
+    classify = Conv2D(num_classes, (1, 1), activation='sigmoid')(up0)
     return Model(inputs=inputs, outputs=classify)
 
 
@@ -165,14 +145,9 @@ def dice_coeff(y_true, y_pred):
     return score
 
 
-def dice_loss(y_true, y_pred):
-    loss = 1 - dice_coeff(y_true, y_pred)
-    return loss
-
-
-def bce_dice_loss(y_true, y_pred):
-    loss = binary_crossentropy(y_true, y_pred) + dice_loss(y_true, y_pred)
-    return loss
+def psnr(hr, sr, max_val=1):
+    mse = K.mean(K.square(hr - sr))
+    return 10.0 / np.log(10) * K.log(max_val ** 2 / mse)
 
 
 def data_generator(path, batch_size=2):
@@ -187,14 +162,12 @@ def data_generator(path, batch_size=2):
                 np.random.shuffle(idxs)
             fn = f'{path}/x/{idxs[i]}.jpg'
             im = cv2.imread(fn)
-            im = cv2.resize(im, (512, 512))
             x.append(im)
             fn = f'{path}/y/{idxs[i]}.jpg'
             im = cv2.imread(fn, 0)
-            im = cv2.resize(im, (512, 512))
             y.append(im)
             i = (i + 1) % n
-        x = np.array(x, dtype='float32') / 127.5 - 1
+        x = np.array(x, dtype='float32') / 255
         y = np.array(y, dtype='float32') / 255
         y.shape = y.shape + (1,)
         yield x, y
@@ -202,7 +175,7 @@ def data_generator(path, batch_size=2):
 
 model = get_unet_512()
 reduce_lr = ReduceLROnPlateau(verbose=1)
-model.compile(optimizer=RMSprop(), loss=bce_dice_loss, metrics=[dice_coeff])
+model.compile(optimizer=RMSprop(), loss='mean_absolute_error', metrics=[dice_coeff, psnr])
 model.fit_generator(data_generator('../dataset', 2),
                     steps_per_epoch=1500,
                     epochs=10,
