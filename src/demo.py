@@ -49,4 +49,4 @@ if __name__ == '__main__':
     # images, masks = data['images'], data['masks']
     # cv2.imwrite('celeba.image.123.jpg', images[123])
     # cv2.imwrite('celeba.mark.123.jpg', masks[123])
-    main('weights.050.h5', './26.jpg', 'h.26.jpg')
+    main('weights.050.h5', './14.jpg', 'h.14.jpg')
