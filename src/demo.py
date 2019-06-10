@@ -20,13 +20,15 @@ def predict(model, im):
 
 
 def recolor(im, mask, color):
-    color = np.array(color)
-    mean = (im.max(axis=2, keepdims=True) * mask).sum() / mask.sum()
-    f = scipy.interpolate.interp1d([0, mean, 255], [0, color.max(), 255])
-    f = f(np.arange(256)).astype('uint8')
-    color = color / color.max()
+    color = np.array(color, dtype='float')
+    x = im.max(axis=2, keepdims=True)
+    x_target = color.max()
+    x_mean = (x * mask).sum() / mask.sum()
+    b = max(0, 255 * (x_mean - x_target) / (x_mean - 255))
+    a = (x_target - b) / x_mean
+    color /= color.max()
     color.shape = 1, 1, 3
-    im = im * (1 - mask) + f[im.max(axis=2, keepdims=True)] * color * mask
+    im = im * (1 - mask) + (a * x + b) * color * mask
     return im
 
 
@@ -49,4 +51,4 @@ if __name__ == '__main__':
     # images, masks = data['images'], data['masks']
     # cv2.imwrite('celeba.image.123.jpg', images[123])
     # cv2.imwrite('celeba.mark.123.jpg', masks[123])
-    main('weights.050.h5', './14.jpg', 'h.14.jpg')
+    main('model.h5', './5.jpg', 'i.5.jpg')
