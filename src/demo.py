@@ -3,7 +3,6 @@ import time
 import cv2
 import keras
 import numpy as np
-import scipy
 
 
 def predict(model, im):
@@ -19,16 +18,22 @@ def predict(model, im):
     return mask
 
 
-def recolor(im, mask, color):
-    color = np.array(color, dtype='float')
-    x = im.max(axis=2, keepdims=True)
-    x_target = color.max()
-    x_mean = (x * mask).sum() / mask.sum()
-    b = max(0, 255 * (x_mean - x_target) / (x_mean - 255))
-    a = (x_target - b) / x_mean
-    color /= color.max()
-    color.shape = 1, 1, 3
-    im = im * (1 - mask) + (a * x + b) * color * mask
+def recolor(im, mask, color=(0x40, 0x16, 0x66)):
+    # 工程化
+    color = np.array(color, dtype='float', ndmin=3)
+    # 染发
+    epsilon = 1
+    x = np.max(im, axis=2, keepdims=True)   # 获取亮度
+    x_target = np.max(color)
+    x = x / (255 + epsilon)                 # 数学化
+    x_target = x_target / (255 + epsilon)
+    x = -np.log(1 - x)                      # 来到真实世界（尽力了）
+    x_target = -np.log(1 - x_target)
+    x_mean = np.sum(x * mask) / np.sum(mask)
+    x = x_target / x_mean * x               # 调整亮度
+    x = 1 - np.exp(-x)                      # 回到计算机
+    x = x * (255 + epsilon)                 # 二进制化
+    im = im * (1 - mask) + (x * mask) * (color / np.max(color))
     return im
 
 
@@ -51,4 +56,4 @@ if __name__ == '__main__':
     # images, masks = data['images'], data['masks']
     # cv2.imwrite('celeba.image.123.jpg', images[123])
     # cv2.imwrite('celeba.mark.123.jpg', masks[123])
-    main('model.h5', './5.jpg', 'i.5.jpg')
+    main('weights.005.h5', './14.jpg', 'i.14.jpg')
