@@ -22,17 +22,16 @@ def recolor(im, mask, color=(0x40, 0x16, 0x66)):
     # 工程化
     color = np.array(color, dtype='float', ndmin=3)
     # 染发
-    epsilon = 1
+    epsilon = 1e-7
     x = np.max(im, axis=2, keepdims=True)   # 获取亮度
     x_target = np.max(color)
-    x = x / (255 + epsilon)                 # 数学化
-    x_target = x_target / (255 + epsilon)
-    x = -np.log(1 - x)                      # 来到真实世界（尽力了）
-    x_target = -np.log(1 - x_target)
-    x_mean = np.sum(x * mask) / np.sum(mask)
-    x = x_target / x_mean * x               # 调整亮度
-    x = 1 - np.exp(-x)                      # 回到计算机
-    x = x * (255 + epsilon)                 # 二进制化
+    x = x / 255                             # 数学化
+    x_target = x_target / 255
+    x_target = -np.log(epsilon + 1 - x_target)
+    x_mean = np.sum(-np.log(epsilon + 1 - x)  * mask) / np.sum(mask)
+    alpha = x_target / x_mean
+    x = 1 - (1 - x) ** alpha
+    x = x * 255                             # 二进制化
     im = im * (1 - mask) + (x * mask) * (color / np.max(color))
     return im
 
@@ -56,4 +55,4 @@ if __name__ == '__main__':
     # images, masks = data['images'], data['masks']
     # cv2.imwrite('celeba.image.123.jpg', images[123])
     # cv2.imwrite('celeba.mark.123.jpg', masks[123])
-    main('weights.005.h5', './14.jpg', 'i.14.jpg')
+    main('weights.005.h5', './t.jpg', 'i.t.jpg')
