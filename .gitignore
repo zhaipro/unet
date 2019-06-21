@@ -103,3 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 *.jpg
+*.ppm
+*.exe
+*.o
+*.h5
+*.npz
