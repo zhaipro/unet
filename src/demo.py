@@ -18,21 +18,29 @@ def predict(model, im):
     return mask
 
 
-def recolor(im, mask, color=(0x40, 0x16, 0x66)):
-    # 工程化
-    color = np.array(color, dtype='float', ndmin=3)
+def change_v(v, mask, target):
     # 染发
     epsilon = 1e-7
-    x = np.max(im, axis=2, keepdims=True)   # 获取亮度
-    x_target = np.max(color)
-    x = x / 255                             # 数学化
-    x_target = x_target / 255
-    x_target = -np.log(epsilon + 1 - x_target)
+    x = v / 255                             # 数学化
+    target = target / 255
+    target = -np.log(epsilon + 1 - target)
     x_mean = np.sum(-np.log(epsilon + 1 - x)  * mask) / np.sum(mask)
-    alpha = x_target / x_mean
+    alpha = target / x_mean
     x = 1 - (1 - x) ** alpha
-    x = x * 255                             # 二进制化
-    im = im * (1 - mask) + (x * mask) * (color / np.max(color))
+    v[:] = x * 255                          # 二进制化
+
+
+def recolor(im, mask, color=(0x40, 0x16, 0x66)):
+    # 工程化
+    color = np.array(color, dtype='uint8', ndmin=3)
+    im_hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    color_hsv = cv2.cvtColor(color, cv2.COLOR_BGR2HSV)
+    # 染发
+    im_hsv[..., 0] = color_hsv[..., 0]      # 修改颜色
+    change_v(im_hsv[..., 2:], mask, color_hsv[..., 2:])
+    im_hsv[..., 1] = color_hsv[..., 1]      # 修改饱和度
+    x = cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR)
+    im = im * (1 - mask) + x * mask
     return im
 
 
@@ -55,4 +63,4 @@ if __name__ == '__main__':
     # images, masks = data['images'], data['masks']
     # cv2.imwrite('celeba.image.123.jpg', images[123])
     # cv2.imwrite('celeba.mark.123.jpg', masks[123])
-    main('weights.005.h5', './t.jpg', 'i.t.jpg')
+    main('weights.005.h5', './116_ori.jpg', './recolor.116_ori.jpg')
