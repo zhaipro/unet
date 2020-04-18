@@ -20,11 +20,9 @@ def predict(model, im):
 
 def change_v(v, mask, target):
     # 染发
-    epsilon = 1e-7
     x = v / 255                             # 数学化
     target = target / 255
-    target = -np.log(epsilon + 1 - target)
-    x_mean = np.sum(-np.log(epsilon + 1 - x)  * mask) / np.sum(mask)
+    x_mean = np.sum(x * mask) / np.sum(mask)
     alpha = target / x_mean
     x = 1 - (1 - x) ** alpha
     v[:] = x * 255                          # 二进制化
