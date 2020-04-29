@@ -108,3 +108,5 @@ venv.bak/
 *.o
 *.h5
 *.npz
+aliyunsdkcore
+aliyunsdkimageseg
