@@ -1,10 +1,6 @@
 # unet
 
-<div>
-<img src="./screenshots/14.jpg" height="256">
-<img src="./screenshots/h.14.jpg" height="256">
-<img src="./screenshots/mask.jpg" height="256">
-</div>
+![tt](https://user-images.githubusercontent.com/8620842/80687226-8ec6b400-8afc-11ea-8993-d4d0c9cd8450.jpg)
 
 训练好的[模型](https://pan.baidu.com/s/1arpxQ2r0hLtHzIN9QXDHKw)
 

@@ -19,13 +19,11 @@ def predict(model, im):
 
 
 def change_v(v, mask, target):
-    # 染发
-    x = v / 255                             # 数学化
-    target = target / 255
-    x_mean = np.sum(x * mask) / np.sum(mask)
-    alpha = target / x_mean
+    v_mean = np.sum(v * mask) / np.sum(mask)
+    alpha = target / v_mean
+    x = v / 255                 # 数学化
     x = 1 - (1 - x) ** alpha
-    v[:] = x * 255                          # 二进制化
+    v[:] = x * 255              # 二进制化
 
 
 def recolor(im, mask, color=(0x40, 0x16, 0x66)):
@@ -36,7 +34,7 @@ def recolor(im, mask, color=(0x40, 0x16, 0x66)):
     # 染发
     im_hsv[..., 0] = color_hsv[..., 0]      # 修改颜色
     change_v(im_hsv[..., 2:], mask, color_hsv[..., 2:])
-    im_hsv[..., 1] = color_hsv[..., 1]      # 修改饱和度
+    change_v(im_hsv[..., 1:2], mask, color_hsv[..., 1:2])
     x = cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR)
     im = im * (1 - mask) + x * mask
     return im
@@ -61,4 +59,4 @@ if __name__ == '__main__':
     # images, masks = data['images'], data['masks']
     # cv2.imwrite('celeba.image.123.jpg', images[123])
     # cv2.imwrite('celeba.mark.123.jpg', masks[123])
-    main('weights.005.h5', './116_ori.jpg', './recolor.116_ori.jpg')
+    main('weights.005.h5', '../screenshots/14.jpg', './recolor.14.v1.jpg', color=[0xec, 0x87, 0xc0])
