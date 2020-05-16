@@ -1,3 +1,4 @@
+import sys
 import time
 
 import cv2
@@ -10,7 +11,7 @@ def predict(model, im):
     inputs = cv2.resize(im, (480, 480))
     inputs = inputs.astype('float32')
     inputs.shape = (1,) + inputs.shape
-    inputs = inputs / 255
+    inputs /= 255
     mask = model.predict(inputs)
     mask.shape = mask.shape[1:]
     mask = cv2.resize(mask, (w, h))
@@ -40,7 +41,7 @@ def recolor(im, mask, color=(0x40, 0x16, 0x66)):
     return im
 
 
-def main(model, ifn, ofn, color=(0x40, 0x16, 0x66)):
+def main(model, ifn, color=(0x40, 0x16, 0x66)):
     if isinstance(model, str):
         model = keras.models.load_model(model, compile=False)
     im = cv2.imread(ifn)
@@ -50,8 +51,10 @@ def main(model, ifn, ofn, color=(0x40, 0x16, 0x66)):
     start = time.perf_counter()
     im = recolor(im, mask, color)
     print(time.perf_counter() - start)
-    cv2.imwrite(ofn, im)
-    cv2.imwrite('mask.jpg', mask * 255)
+    mask *= 255
+    cv2.imshow('im', im.astype('uint8'))
+    cv2.imshow('mask', mask.astype('uint8'))
+    cv2.waitKey()
 
 
 if __name__ == '__main__':
@@ -59,4 +62,4 @@ if __name__ == '__main__':
     # images, masks = data['images'], data['masks']
     # cv2.imwrite('celeba.image.123.jpg', images[123])
     # cv2.imwrite('celeba.mark.123.jpg', masks[123])
-    main('weights.005.h5', '../screenshots/14.jpg', './recolor.14.v1.jpg', color=[0xec, 0x87, 0xc0])
+    main('weights.005.h5', sys.argv[1], color=[0xec, 0x87, 0xc0])
