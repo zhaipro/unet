@@ -19,6 +19,20 @@ def predict(model, im):
     return mask
 
 
+def beautify(im):
+    fm = cv2.imread('filtermap.png')
+    fm.shape = 8, 64, 8, 64, 3
+    fm = np.transpose(fm, (0, 2, 1, 3, 4)).reshape((64, 64, 64, 3))
+    im = im / 4
+    im_floor = np.floor(im).astype('uint8')
+    im_ceil = np.ceil(im).astype('uint8')
+    im_ceil = np.minimum(im_ceil, 63)
+    out_floor = fm[im_floor[..., 0], im_floor[..., 1], im_floor[..., 2]].astype('float')
+    out_ceil = fm[im_ceil[..., 0], im_ceil[..., 1], im_ceil[..., 2]].astype('float')
+    im = out_floor + (out_ceil - out_floor) * (im - im_floor)
+    return im.astype('uint8')
+
+
 def change_v(v, mask, target):
     v_mean = np.sum(v * mask) / np.sum(mask)
     alpha = target / v_mean
@@ -30,7 +44,7 @@ def change_v(v, mask, target):
 def recolor(im, mask, color=(0x40, 0x16, 0x66)):
     # 工程化
     color = np.array(color, dtype='uint8', ndmin=3)
-    im_hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    im_hsv = cv2.cvtColor(beautify(im), cv2.COLOR_BGR2HSV)
     color_hsv = cv2.cvtColor(color, cv2.COLOR_BGR2HSV)
     # 染发
     im_hsv[..., 0] = color_hsv[..., 0]      # 修改颜色
